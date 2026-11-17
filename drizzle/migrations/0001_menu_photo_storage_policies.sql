@@ -1,0 +1,2 @@
+CREATE POLICY "Passwordless menu photo upload" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'menu-photos');
+COMMENT ON POLICY "Passwordless menu photo upload" ON storage.objects IS 'Owner-requested passwordless menu management; the open dashboard uploads product photos.';
