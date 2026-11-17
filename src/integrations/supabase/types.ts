@@ -76,6 +76,44 @@ export type Database = {
           },
         ]
       }
+      menu_reviews: {
+        Row: {
+          approved: boolean
+          author_name: string
+          comment: string
+          created_at: string
+          id: string
+          item_id: string
+          rating: number
+        }
+        Insert: {
+          approved?: boolean
+          author_name?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          item_id: string
+          rating: number
+        }
+        Update: {
+          approved?: boolean
+          author_name?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_reviews_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
