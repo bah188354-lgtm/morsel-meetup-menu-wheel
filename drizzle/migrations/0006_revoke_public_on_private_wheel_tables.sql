@@ -1,0 +1,1 @@
+REVOKE ALL ON public.wheel_spins, public.wheel_ip_spins, public.wheel_claims, public.admin_pin_attempts FROM anon, authenticated;

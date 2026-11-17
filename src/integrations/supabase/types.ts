@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_pin_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       guest_comments: {
         Row: {
           author_name: string
@@ -138,6 +156,51 @@ export type Database = {
           },
         ]
       }
+      wheel_claims: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          prize: string
+          redeemed_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          prize: string
+          redeemed_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          prize?: string
+          redeemed_at?: string | null
+        }
+        Relationships: []
+      }
+      wheel_ip_spins: {
+        Row: {
+          count: number
+          hour: string
+          ip_hash: string
+        }
+        Insert: {
+          count?: number
+          hour: string
+          ip_hash: string
+        }
+        Update: {
+          count?: number
+          hour?: string
+          ip_hash?: string
+        }
+        Relationships: []
+      }
       wheel_settings: {
         Row: {
           id: number
@@ -165,6 +228,24 @@ export type Database = {
         }
         Relationships: []
       }
+      wheel_spins: {
+        Row: {
+          count: number
+          day: string
+          device_id: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          device_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          device_id?: string
+        }
+        Relationships: []
+      }
       wheel_wins: {
         Row: {
           count: number
@@ -189,6 +270,10 @@ export type Database = {
     }
     Functions: {
       spin_wheel: { Args: never; Returns: number }
+      spin_wheel_guest: {
+        Args: { p_code: string; p_device: string; p_ip: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

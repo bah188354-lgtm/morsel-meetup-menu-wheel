@@ -36,6 +36,20 @@
       "when": 1794917519463,
       "tag": "0004_create_lucky_wheel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794922572041,
+      "tag": "0005_lock_down_comments_wheel_photos",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794922591610,
+      "tag": "0006_revoke_public_on_private_wheel_tables",
+      "breakpoints": true
     }
   ]
 }
