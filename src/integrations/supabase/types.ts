@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      guest_comments: {
+        Row: {
+          author_name: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+        }
+        Insert: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+        }
+        Relationships: []
+      }
       menu_categories: {
         Row: {
           id: string
@@ -114,12 +138,57 @@ export type Database = {
           },
         ]
       }
+      wheel_settings: {
+        Row: {
+          id: number
+          max_spins: number
+          prizes: Json
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          max_spins?: number
+          prizes?: Json
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          max_spins?: number
+          prizes?: Json
+          subtitle?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wheel_wins: {
+        Row: {
+          count: number
+          day: string
+          prize: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          prize: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          prize?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      spin_wheel: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

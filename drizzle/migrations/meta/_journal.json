@@ -22,6 +22,20 @@
       "when": 1794917494580,
       "tag": "0002_create_menu_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794917505718,
+      "tag": "0003_create_guest_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794917519463,
+      "tag": "0004_create_lucky_wheel",
+      "breakpoints": true
     }
   ]
 }
