@@ -1,4 +1,5 @@
-export const publishedMenuUrl = "https://mingle-at-the-table.lovable.app/";
+// Set to this project's published guest menu (".../menu") once it is published; null hides the QR until then.
+export const publishedMenuUrl: string | null = null;
 
 export function guestMenuUrl(origin: string): string | null {
   try {
@@ -11,6 +12,6 @@ export function guestMenuUrl(origin: string): string | null {
   }
 }
 
-export function resolvedGuestMenuUrl(origin: string): string {
+export function resolvedGuestMenuUrl(origin: string): string | null {
   return guestMenuUrl(origin) ?? publishedMenuUrl;
 }

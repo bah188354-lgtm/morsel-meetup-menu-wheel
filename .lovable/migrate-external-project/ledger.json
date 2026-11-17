@@ -5,6 +5,6 @@
  {"capability":"auth","source":"None (passwordless dashboard)","outcome":"not needed","status":"accepted","next_action":"none"},
  {"capability":"authorization","source":"Public RLS on menu tables (owner-requested)","outcome":"migrate","status":"verified","next_action":"none"},
  {"capability":"file storage","source":"Private menu-photos bucket","outcome":"migrate","status":"partial","next_action":"Bucket ready; old uploaded photos must be re-uploaded"},
- {"capability":"QR cutover","source":"publishedMenuUrl points to mingle-at-the-table.lovable.app","outcome":"cutover","status":"pending","next_action":"Update after this project is published"},
+ {"capability":"QR cutover","source":"QR hidden in editor until this project is published","outcome":"cutover","status":"pending","next_action":"Set publishedMenuUrl to <published>/menu after publish"},
  {"capability":"verification","source":"-","outcome":"verify","status":"verified","next_action":"none"}
 ]

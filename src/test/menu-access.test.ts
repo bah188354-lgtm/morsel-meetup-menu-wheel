@@ -85,9 +85,9 @@ describe("Passwordless menu access", () => {
     expect(guestMenuUrl("http://localhost:8080")).toBeNull();
   });
 
-  it("uses the published guest menu for QR codes viewed in the editor", () => {
-    expect(resolvedGuestMenuUrl("https://id-preview--example.lovable.app")).toBe("https://mingle-at-the-table.lovable.app/");
-    expect(resolvedGuestMenuUrl("http://localhost:8080")).toBe("https://mingle-at-the-table.lovable.app/");
+  it("shows no QR in the editor until this project's own menu is published", () => {
+    expect(resolvedGuestMenuUrl("https://id-preview--example.lovable.app")).toBeNull();
+    expect(resolvedGuestMenuUrl("http://localhost:8080")).toBeNull();
   });
 
   it("stores guest comments as unread for the management panel", async () => {
