@@ -14,7 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      menu_categories: {
+        Row: {
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      menu_items: {
+        Row: {
+          available: boolean
+          category_id: string
+          description: string
+          id: string
+          image: string
+          name: string
+          old_price: number | null
+          position: number
+          price: number
+        }
+        Insert: {
+          available?: boolean
+          category_id: string
+          description?: string
+          id?: string
+          image?: string
+          name: string
+          old_price?: number | null
+          position?: number
+          price: number
+        }
+        Update: {
+          available?: boolean
+          category_id?: string
+          description?: string
+          id?: string
+          image?: string
+          name?: string
+          old_price?: number | null
+          position?: number
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
