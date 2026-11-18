@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 import { itemSchema, categorySchema, commentSchema } from "./menu-schema";
+import { managementDb } from "./admin-middleware";
+import { MENU_PHOTO_BUCKET, MENU_PHOTO_MAX_BYTES, MENU_PHOTO_TYPES, menuPhotoUrl, sniffImage } from "./menu-photo";
 
 export const createMenuClient = createServerOnlyFn((url: string | undefined, key: string | undefined) => {
   if (!key || !url) throw new Error("Menü bağlantısı kurulamadı.");
@@ -75,21 +77,39 @@ export const sendComment = createServerFn({ method: "POST" }).inputValidator((in
   if (result.error) throw new Error("Yorum gönderilemedi.");
   return { ok: true };
 });
-export const getComments = createServerFn({ method: "GET" }).handler(async () => {
-  const client = createMenuClient(process.env['SUPABASE_URL'], process.env['SUPABASE_PUBLISHABLE_KEY']);
-  const result = await client.from("guest_comments").select("*").order("created_at", { ascending: false }).limit(500);
+// Comments are locked in the database; only management functions read or change them.
+export const getComments = createServerFn({ method: "GET" }).middleware([managementDb]).handler(async ({ context }) => {
+  const result = await context.db.from("guest_comments").select("*").order("created_at", { ascending: false }).limit(500);
   if (result.error) throw new Error("Yorumlar yüklenemedi.");
   return result.data ?? [];
 });
-export const markComment = createServerFn({ method: "POST" }).inputValidator((input) => z.object({ id: z.string().uuid(), is_read: z.boolean() }).parse(input)).handler(async ({ data }) => {
-  const client = createMenuClient(process.env['SUPABASE_URL'], process.env['SUPABASE_PUBLISHABLE_KEY']);
-  const result = await client.from("guest_comments").update({ is_read: data.is_read }).eq("id", data.id).select("id").single();
+export const markComment = createServerFn({ method: "POST" }).middleware([managementDb]).inputValidator((input) => z.object({ id: z.string().uuid(), is_read: z.boolean() }).parse(input)).handler(async ({ data, context }) => {
+  const result = await context.db.from("guest_comments").update({ is_read: data.is_read }).eq("id", data.id).select("id").single();
   if (result.error) throw new Error("Yorum güncellenemedi.");
   return { ok: true };
 });
-export const deleteComment = createServerFn({ method: "POST" }).inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input)).handler(async ({ data }) => {
-  const client = createMenuClient(process.env['SUPABASE_URL'], process.env['SUPABASE_PUBLISHABLE_KEY']);
-  const result = await client.from("guest_comments").delete().eq("id", data.id).select("id").single();
+export const deleteComment = createServerFn({ method: "POST" }).middleware([managementDb]).inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input)).handler(async ({ data, context }) => {
+  const result = await context.db.from("guest_comments").delete().eq("id", data.id).select("id").single();
   if (result.error) throw new Error("Yorum silinemedi.");
   return { ok: true };
 });
+
+// Storage has no public write rule: photos are checked here and stored under a server-made name.
+export const uploadMenuPhoto = createServerFn({ method: "POST" }).middleware([managementDb])
+  .inputValidator((input) => {
+    const file = input instanceof FormData ? input.get("file") : null;
+    if (!(file instanceof File)) throw new Error("Fotoğraf bulunamadı.");
+    return { file };
+  })
+  .handler(async ({ data, context }) => {
+    const { file } = data;
+    if (!MENU_PHOTO_TYPES.includes(file.type)) throw new Error("Yalnızca JPEG, PNG veya WebP fotoğraf yüklenebilir.");
+    if (file.size > MENU_PHOTO_MAX_BYTES) throw new Error("Fotoğraf en fazla 2 MB olabilir.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const kind = sniffImage(bytes);
+    if (bytes.byteLength > MENU_PHOTO_MAX_BYTES || !kind || kind !== file.type) throw new Error("Dosya geçerli bir fotoğraf değil.");
+    const name = `${crypto.randomUUID()}.jpg`;
+    const { error } = await context.db.storage.from(MENU_PHOTO_BUCKET).upload(name, bytes, { contentType: kind, cacheControl: "31536000" });
+    if (error) throw new Error("Fotoğraf yüklenemedi.");
+    return { url: menuPhotoUrl(name) };
+  });

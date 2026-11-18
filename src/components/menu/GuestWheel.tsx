@@ -9,6 +9,9 @@ function today() {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
+function saveCount(n: number) {
+  try { localStorage.setItem("carkspin", JSON.stringify({ d: today(), n })); } catch { /* storage may be blocked */ }
+}
 function spinCount() {
   try {
     const saved = JSON.parse(localStorage.getItem("carkspin") || "{}");
@@ -41,6 +44,7 @@ export function GuestWheel({ open, onOpenChange }: { open: boolean; onOpenChange
   const [rotation, setRotation] = useState(0);
   const [winner, setWinner] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [code, setCode] = useState<string | null>(null);
   const frame = useRef<number | null>(null);
   const spinning = useRef(false);
   useEffect(() => {
@@ -55,16 +59,22 @@ export function GuestWheel({ open, onOpenChange }: { open: boolean; onOpenChange
   async function spin() {
     if (!settings || spinning.current || full) return;
     spinning.current = true;
-    setBusy(true); setWinner(null); setError("");
+    setBusy(true); setWinner(null); setError(""); setCode(null);
     try {
+      // The server counts spins per device; the saved count only drives the button text.
       const response = await fetch("/api/public/wheel-spin", { method: "POST" });
+      const result: { index?: number; code?: string | null; used?: number; error?: string } = await response.json().catch(() => ({}));
+      if (response.status === 429 && result.error === "device_limit") {
+        saveCount(settings.max_spins); setCount(settings.max_spins);
+        setBusy(false); spinning.current = false; return;
+      }
       if (!response.ok) throw new Error("Şu anda çevrilemiyor. Lütfen tekrar deneyin.");
-      const result: { index: number } = await response.json();
-      if (!Number.isInteger(result.index) || !prizes[result.index]) throw new Error("Lütfen tekrar deneyin.");
-      const next = spinCount() + 1;
-      try { localStorage.setItem("carkspin", JSON.stringify({ d: today(), n: next })); } catch { /* storage may be blocked */ }
+      const index = result.index;
+      if (typeof index !== "number" || !Number.isInteger(index) || !prizes[index]) throw new Error("Lütfen tekrar deneyin.");
+      const next = typeof result.used === "number" ? result.used : spinCount() + 1;
+      saveCount(next);
       setCount(next);
-      const target = 270 - (result.index + 0.5) * 360 / prizes.length;
+      const target = 270 - (index + 0.5) * 360 / prizes.length;
       const current = ((rotation % 360) + 360) % 360;
       const delta = ((target - current) % 360 + 360) % 360 + 360 * 6;
       const started = performance.now();
@@ -73,7 +83,7 @@ export function GuestWheel({ open, onOpenChange }: { open: boolean; onOpenChange
         const progress = duration === 0 ? 1 : Math.min(1, (now - started) / duration);
         setRotation(rotation + delta * (1 - Math.pow(1 - progress, 4)));
         if (progress < 1) frame.current = requestAnimationFrame(animate);
-        else { setWinner(result.index); setBusy(false); spinning.current = false; }
+        else { setWinner(index); setCode(result.code ?? null); setBusy(false); spinning.current = false; }
       };
       frame.current = requestAnimationFrame(animate);
     } catch (err) {
@@ -136,6 +146,11 @@ export function GuestWheel({ open, onOpenChange }: { open: boolean; onOpenChange
             <p className="text-7xl leading-tight">{error ? "⚠️" : result?.e}</p>
             {!error && <p>{result?.x ? "Not this time" : "Congratulations! You won:"}</p>}
             <p className="my-1.5 break-words text-2xl font-extrabold">{error ? "Please try again." : result?.x ? "Better luck next time!" : result?.t}</p>
+            {!error && !result?.x && code && <div className="mt-3 rounded-2xl bg-secondary px-4 py-3">
+              <p className="text-sm text-muted-foreground">Your prize code</p>
+              <p className="font-mono text-4xl font-extrabold tracking-[0.2em]">{code}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Valid today only — show this code at the counter.</p>
+            </div>}
             <button type="button" className="mt-2.5 w-full text-muted-foreground" onClick={() => { setWinner(null); setError(""); }}>Close</button>
           </div>
         </div>}

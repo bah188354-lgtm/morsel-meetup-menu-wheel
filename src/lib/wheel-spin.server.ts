@@ -1,6 +1,10 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { sha256 } from "./admin-session.server";
 import { DEVICE_COOKIE, isDeviceId, makeClaimCode, newDeviceId } from "./wheel-claim";
+
+async function sha256(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 type SpinResult = { status: "ok" | "device_limit" | "ip_limit" | "unavailable"; index?: number; code?: string | null; used?: number };
 

@@ -20,3 +20,5 @@ Yayınlama istendi. QR kodu yayın için belirlenen misafir menüsü adresini ku
 - [x] Yorum düğmesi sağ altta küçük yuvarlak simge
 - [x] Uygulama yönetim paneliyle açılır; misafir menüsü QR kodla açılan ayrı sayfada
 - [x] Çarkı menüyle aynı görünümde, ayrı sayfa yüklemeden hızlı açma ve telefon kontrolü
+- [x] Güvenlik: yorumlar gizli, çark hilesine karşı sunucu sınırı ve ödül kodları, fotoğraf yükleme sunucuda kontrollü
+- [ ] Yönetim paneline Gmail ile giriş (sonra yapılacak)

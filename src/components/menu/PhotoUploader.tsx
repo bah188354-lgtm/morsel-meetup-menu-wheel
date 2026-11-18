@@ -2,11 +2,13 @@ import { useRef, useState, type DragEvent } from "react";
 import { ImagePlus, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { uploadMenuPhoto } from "@/lib/menu.functions";
 import { menuImage } from "@/lib/menu-images";
-import { compressMenuPhoto, menuPhotoUrl, MENU_PHOTO_BUCKET, MENU_PHOTO_MAX_BYTES } from "@/lib/menu-photo";
+import { compressMenuPhoto, MENU_PHOTO_MAX_BYTES, MENU_PHOTO_SOURCE_MAX_BYTES } from "@/lib/menu-photo";
 
 export function PhotoUploader({ value, onChange, onBusyChange }: { value: string; onChange: (image: string) => void; onBusyChange?: (busy: boolean) => void }) {
+  const send = useServerFn(uploadMenuPhoto);
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -14,14 +16,15 @@ export function PhotoUploader({ value, onChange, onBusyChange }: { value: string
   async function upload(file: File | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) { toast.error("Lütfen bir fotoğraf seçin."); return; }
-    if (file.size > MENU_PHOTO_MAX_BYTES) { toast.error("Fotoğraf en fazla 15 MB olabilir."); return; }
+    if (file.size > MENU_PHOTO_SOURCE_MAX_BYTES) { toast.error("Fotoğraf en fazla 15 MB olabilir."); return; }
     setUploading(true); onBusyChange?.(true);
     try {
       const blob = await compressMenuPhoto(file);
-      const name = `${crypto.randomUUID()}.jpg`;
-      const { error } = await supabase.storage.from(MENU_PHOTO_BUCKET).upload(name, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
-      if (error) throw error;
-      onChange(menuPhotoUrl(name));
+      if (blob.size > MENU_PHOTO_MAX_BYTES) { toast.error("Fotoğraf çok büyük. En fazla 2 MB olabilir; lütfen daha küçük bir fotoğraf seçin."); return; }
+      const form = new FormData();
+      form.append("file", new File([blob], "photo.jpg", { type: "image/jpeg" }));
+      const { url } = await send({ data: form });
+      onChange(url);
       toast.success("Fotoğraf yüklendi.");
     } catch {
       toast.error("Fotoğraf yüklenemedi, tekrar deneyin.");

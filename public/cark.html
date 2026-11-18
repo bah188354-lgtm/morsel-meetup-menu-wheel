@@ -47,6 +47,7 @@ canvas{width:100%;height:auto;display:block}
   <div id="pe" style="font-size:4.5rem;line-height:1.2;text-align:center"></div>
   <div id="m1">Congratulations! You won:</div>
   <div class="prize" id="pt"></div>
+  <div id="pcb" style="display:none;margin-top:10px;padding:12px;border-radius:16px;background:var(--bg)"><div style="color:var(--mute);font-size:.9rem">Your prize code</div><div id="pc" style="font-family:ui-monospace,monospace;font-size:2.2rem;font-weight:800;letter-spacing:.2em"></div><div style="color:var(--mute);font-size:.9rem">Valid today only — show this code at the counter.</div></div>
   <button class="link" id="close">Close</button>
 </div></div>
 
@@ -57,7 +58,8 @@ var P=[],MAX=0,READY=false;
 var $=function(x){return document.getElementById(x);};
 function day(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
 function cnt(){try{var o=JSON.parse(localStorage.getItem("carkspin")||"{}");return o.d===day()?o.n:0;}catch(e){return 0;}}
-function mark(){try{localStorage.setItem("carkspin",JSON.stringify({d:day(),n:cnt()+1}));}catch(e){}}
+// The server counts spins per device; this saved count only drives the button text.
+function mark(n){try{localStorage.setItem("carkspin",JSON.stringify({d:day(),n:n}));}catch(e){}}
 function full(){return MAX>0&&cnt()>=MAX;}
 function lockUI(){var b=$("spin"),on=full();b.disabled=on||!READY;b.textContent=!READY?"…":on?"Out of spins, come back tomorrow":(MAX>0?"SPIN! ("+(MAX-cnt())+" left)":"SPIN!");}
 function boom(){var c=$("cf"),x=c.getContext("2d"),W=c.width=innerWidth,H=c.height=innerHeight,ps=[],cols=["#f03e3e","#fab005","#40c057","#228be6","#be4bdb","#fd7e14"],s,i;
@@ -87,18 +89,21 @@ function draw(){
 }
 function spin(){
  if(busy||!READY)return;if(full()){lockUI();return;}busy=true;$("spin").disabled=true;
- fetch("/api/public/wheel-spin",{method:"POST"}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(res){
-  var w=res.index;if(typeof w!=="number"||!P[w])throw 0;mark();
+ fetch("/api/public/wheel-spin",{method:"POST"}).then(function(r){return r.json().catch(function(){return {};}).then(function(b){
+  if(r.status===429&&b.error==="device_limit"){mark(MAX);return null;}if(!r.ok)throw 0;return b;});}).then(function(res){
+  if(!res){busy=false;lockUI();return;}
+  var w=res.index;if(typeof w!=="number"||!P[w])throw 0;mark(typeof res.used==="number"?res.used:cnt()+1);
   var arc=Math.PI*2/P.length,want=3*Math.PI/2-(w+0.5)*arc;
   var cur=((rot%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
   var d=((want-cur)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)+Math.PI*2*6;
   var start=rot,t0=performance.now(),dur=5000;
   (function f(n){var k=Math.min(1,(n-t0)/dur),e=1-Math.pow(1-k,4);rot=start+d*e;draw();
-   if(k<1)requestAnimationFrame(f);else{busy=false;lockUI();win(w);}})(t0);
- }).catch(function(){busy=false;lockUI();$("pe").textContent="⚠️";$("m1").textContent="";$("pt").textContent="Please try again.";$("modal").classList.add("show");});
+   if(k<1)requestAnimationFrame(f);else{busy=false;lockUI();win(w,res.code);}})(t0);
+ }).catch(function(){busy=false;lockUI();$("pcb").style.display="none";$("pe").textContent="⚠️";$("m1").textContent="";$("pt").textContent="Please try again.";$("modal").classList.add("show");});
 }
-function win(i){
+function win(i,code){
  var p=P[i],em=!!p.x;
+ $("pc").textContent=code||"";$("pcb").style.display=!em&&code?"block":"none";
  $("pe").textContent=p.e;
  $("m1").textContent=em?"Not this time":"Congratulations! You won:";
  $("pt").textContent=em?"Better luck next time!":p.t;

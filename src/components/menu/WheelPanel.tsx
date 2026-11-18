@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Minus, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { BadgeCheck, Minus, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { wheelQuery } from "@/lib/menu-queries";
-import { saveWheel, resetWheelToday } from "@/lib/wheel.functions";
+import { saveWheel, resetWheelToday, checkClaim, redeemClaim, type ClaimCheck } from "@/lib/wheel.functions";
 import { prizeMode, limitForMode, wheelSchema, type Prize, type PrizeMode } from "@/lib/wheel-schema";
 
 const base = "rounded-xl border border-border bg-input px-3.5 py-3 text-base outline-none transition focus:border-primary focus:ring-1 focus:ring-ring sm:text-sm";
@@ -16,6 +16,51 @@ const modes: { id: PrizeMode; label: string; hint: string }[] = [
   { id: "z", label: "Sadece göster", hint: "Çarkta görünür ama kimse kazanmaz." },
 ];
 const palette = ["#8d5524", "#2f9e44", "#f08c00", "#1c7ed6", "#d6336c", "#7048e8", "#0b7285", "#e8590c"];
+
+const statusText = { valid: "Geçerli", used: "Kullanıldı", expired: "Süresi doldu" } as const;
+
+/** The cashier checks a guest's prize code; a code can be marked used only once. */
+function ClaimVerifier({ claims }: { claims: { code: string; prize: string; created_at: string }[] }) {
+  const client = useQueryClient();
+  const check = useServerFn(checkClaim); const redeem = useServerFn(redeemClaim);
+  const [code, setCode] = useState("");
+  const [result, setResult] = useState<ClaimCheck | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function lookup(value = code) {
+    if (!value.trim()) return;
+    setBusy(true);
+    try { setResult(await check({ data: { code: value } })); } catch { toast.error("Kod kontrol edilemedi."); } finally { setBusy(false); }
+  }
+  async function markUsed() {
+    if (!result?.found) return;
+    setBusy(true);
+    try {
+      const { ok } = await redeem({ data: { code: result.code } });
+      if (ok) toast.success("Ödül kullanıldı olarak işaretlendi."); else toast.error("Bu kod artık geçerli değil.");
+      setResult(await check({ data: { code: result.code } }));
+      await client.invalidateQueries({ queryKey: wheelQuery.queryKey });
+    } catch { toast.error("Kod işaretlenemedi."); } finally { setBusy(false); }
+  }
+
+  return <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+    <h2 className="text-lg font-semibold">Ödül doğrula</h2>
+    <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); void lookup(); }}>
+      <input aria-label="Ödül kodu" className={`${base} min-w-0 flex-1 font-mono uppercase tracking-widest`} maxLength={12} placeholder="ABC234" value={code} onChange={(e) => { setCode(e.target.value); setResult(null); }} />
+      <Button type="submit" variant="secondary" disabled={busy || !code.trim()}><Search />Kontrol et</Button>
+    </form>
+    {result && (result.found ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-secondary p-3">
+      <div><p className="font-semibold">{result.prize}</p>
+        <p className={`text-sm ${result.status === "valid" ? "text-success" : "text-destructive"}`}>{statusText[result.status]}</p></div>
+      {result.status === "valid" && <Button disabled={busy} onClick={() => void markUsed()}><BadgeCheck />Kullanıldı olarak işaretle</Button>}
+    </div> : <p className="mt-3 text-sm text-destructive">Bu kod bulunamadı.</p>)}
+    <p className="mt-4 text-sm font-medium">Bugünkü kullanılmamış kodlar</p>
+    {claims.length === 0 ? <p className="mt-1 text-sm text-muted-foreground">Henüz yok.</p> : <ul className="mt-2 flex flex-wrap gap-2">
+      {claims.map((c) => <li key={c.code}><button type="button" onClick={() => { setCode(c.code); void lookup(c.code); }} className="rounded-full bg-secondary px-3 py-1 text-xs hover:text-foreground">
+        <span className="font-mono font-semibold tracking-wider">{c.code}</span> · {c.prize}</button></li>)}
+    </ul>}
+  </div>;
+}
 
 type Draft = { title: string; subtitle: string; max_spins: number; prizes: Prize[] };
 
@@ -50,6 +95,8 @@ export function WheelPanel() {
       <div><h1 className="text-2xl font-semibold">Şans Çarkı</h1><p className="mt-1 text-sm text-muted-foreground">Çarkın yazılarını ve ödüllerini buradan değiştirin</p></div>
       <Button variant="outline" onClick={() => void resetToday()} disabled={busy}><RotateCcw />Bugünü sıfırla</Button>
     </div>
+
+    <ClaimVerifier claims={wheel.data.claims} />
 
     <div className="mt-6 space-y-4 rounded-2xl border border-border bg-card p-5">
       <label className="block space-y-1.5"><span className="text-sm font-medium">Başlık</span><input className={field} maxLength={80} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>

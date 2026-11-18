@@ -12,9 +12,11 @@ const database = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-start", () => ({
   createServerOnlyFn: (handler: unknown) => handler,
+  createMiddleware: () => ({ server: (handler: unknown) => handler }),
   createServerFn: () => {
     let validate = (data: unknown) => data;
     const builder = {
+      middleware: () => builder,
       inputValidator: (validator: typeof validate) => { validate = validator; return builder; },
       handler: (handler: (input: { data: unknown }) => unknown) => (input?: { data: unknown }) => handler({ data: validate(input?.data) }),
     };
